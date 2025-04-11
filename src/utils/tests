@@ -1,0 +1,139 @@
+#[cfg(test)]
+mod tests {
+    use anyhow::Result;
+    use crate::{
+        models::Sensor,
+        utils::test_utils::{setup_test_db, create_test_sensor},
+    };
+
+    #[test]
+    fn test_create_sensor() -> Result<()> {
+        let _pool = setup_test_db()?;
+        
+        let sensor = Sensor {
+            sensor_id: None,
+            sensor_name: "Test Temperature Sensor".to_string(),
+            sensor_type: "temperature".to_string(),
+            location: Some("Building A, Room 101".to_string()),
+            unit: Some("C".to_string()),
+            threshold_min: Some(18.0),
+            threshold_max: Some(25.0),
+            calibration_date: None,
+            notes: Some("Test sensor".to_string()),
+            created_at: None,
+            updated_at: None,
+        };
+        
+        let id = sensor.create()?;
+        assert!(id > 0, "Sensor ID should be positive");
+        
+        let retrieved = Sensor::get_by_id(id)?;
+        assert_eq!(retrieved.sensor_name, "Test Temperature Sensor");
+        assert_eq!(retrieved.sensor_type, "temperature");
+        assert_eq!(retrieved.location, Some("Building A, Room 101".to_string()));
+        
+        Ok(())
+    }
+    
+    #[test]
+    fn test_update_sensor() -> Result<()> {
+        let pool = setup_test_db()?;
+        let conn = pool.get()?;
+        
+        let sensor_id = create_test_sensor(&conn)?;
+        
+        let sensor = Sensor {
+            sensor_id: None,
+            sensor_name: "Updated Sensor".to_string(),
+            sensor_type: "humidity".to_string(),
+            location: Some("New Location".to_string()),
+            unit: Some("%".to_string()),
+            threshold_min: Some(30.0),
+            threshold_max: Some(70.0),
+            calibration_date: None,
+            notes: Some("Updated notes".to_string()),
+            created_at: None,
+            updated_at: None,
+        };
+        
+        sensor.update(sensor_id)?;
+        
+        let retrieved = Sensor::get_by_id(sensor_id)?;
+        assert_eq!(retrieved.sensor_name, "Updated Sensor");
+        assert_eq!(retrieved.sensor_type, "humidity");
+        assert_eq!(retrieved.unit, Some("%".to_string()));
+        
+        Ok(())
+    }
+    
+    #[test]
+    fn test_delete_sensor() -> Result<()> {
+        let pool = setup_test_db()?;
+        let conn = pool.get()?;
+        
+        let sensor_id = create_test_sensor(&conn)?;
+        
+        Sensor::delete(sensor_id)?;
+        
+        let result = Sensor::get_by_id(sensor_id);
+        assert!(result.is_err(), "Sensor should be deleted");
+        
+        Ok(())
+    }
+    
+    #[test]
+    fn test_get_all_sensors() -> Result<()> {
+        let pool = setup_test_db()?;
+        let conn = pool.get()?;
+        
+        // Create two sensors
+        create_test_sensor(&conn)?;
+        
+        let sensor2 = Sensor {
+            sensor_id: None,
+            sensor_name: "Test Flow Sensor".to_string(),
+            sensor_type: "flow".to_string(),
+            location: Some("Building B".to_string()),
+            unit: Some("L/min".to_string()),
+            threshold_min: Some(5.0),
+            threshold_max: Some(50.0),
+            calibration_date: None,
+            notes: Some("Test flow sensor".to_string()),
+            created_at: None,
+            updated_at: None,
+        };
+        
+        sensor2.create()?;
+        
+        // Test with no filters
+        let query = crate::models::SensorQuery {
+            sensor_type: None,
+            location: None,
+        };
+        
+        let sensors = Sensor::get_all(&query)?;
+        assert_eq!(sensors.len(), 2, "Should retrieve 2 sensors");
+        
+        // Test with type filter
+        let query = crate::models::SensorQuery {
+            sensor_type: Some("flow".to_string()),
+            location: None,
+        };
+        
+        let sensors = Sensor::get_all(&query)?;
+        assert_eq!(sensors.len(), 1, "Should retrieve 1 sensor");
+        assert_eq!(sensors[0].sensor_type, "flow");
+        
+        // Test with location filter
+        let query = crate::models::SensorQuery {
+            sensor_type: None,
+            location: Some("Building B".to_string()),
+        };
+        
+        let sensors = Sensor::get_all(&query)?;
+        assert_eq!(sensors.len(), 1, "Should retrieve 1 sensor");
+        assert_eq!(sensors[0].location, Some("Building B".to_string()));
+        
+        Ok(())
+    }
+}

@@ -1,0 +1,41 @@
+[package]
+name = "sensor-monitoring-api"
+version = "0.1.0"
+edition = "2021"
+authors = ["Your Name <your.email@example.com>"]
+description = "Time-series optimized SQLite API for utility data-logging"
+
+[dependencies]
+# Web framework
+axum = "0.7"
+tower = "0.4"
+tower-http = { version = "0.5", features = ["trace", "cors"] }
+tokio = { version = "1", features = ["full"] }
+hyper = { version = "1.1", features = ["full"] }
+
+# Database
+rusqlite = { version = "0.30", features = ["bundled", "backup", "functions"] }
+r2d2 = "0.8"
+r2d2_sqlite = "0.23"
+
+# Serialization and deserialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Logging and tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Utilities
+chrono = "0.4"
+once_cell = "1.19"
+futures = "0.3"
+csv = "1.3"
+
+[dev-dependencies]
+reqwest = { version = "0.11", features = ["json"] }
+tempfile = "3.8"
